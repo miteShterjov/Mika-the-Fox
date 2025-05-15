@@ -1,12 +1,16 @@
 using System;
+using System.Collections;
 using NUnit.Framework;
+using Unity.Android.Gradle.Manifest;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
     [Header("Player Movement Settings")]
     [SerializeField] private float moveSpeed = 5f; // Normal speed
+    [SerializeField] private float climbSpeed = 3f;
     [SerializeField] private float sprintSpeed = 10f; // Sprint speed
     [SerializeField] private float jumpForce = 8f; // Jump force
     [SerializeField] private int maxJumpCount = 2; // Number of jumps allowed (double jump)
@@ -22,6 +26,12 @@ public class PlayerController : MonoBehaviour
     private int jumpCount; // Current jump count
     private bool isFacingRight = true; // Track if the player is facing right
     private float originalMoveSpeed; // Store the original move speed
+    private bool isSprinting; // Track if the player is sprinting
+    private float verticalInput; // Vertical input value for climbing
+    private bool isOnStairs; // Track if the player is climbing
+    private bool isCrouching; // Track if the player is crouching
+
+    public bool IsFacingRight { get => isFacingRight; set => isFacingRight = value; }
 
     void Awake()
     {
@@ -37,33 +47,60 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        // Handle player movement
         OnMove(new InputAction.CallbackContext());
+        if (isOnStairs) OnClimb(new InputAction.CallbackContext());
 
-        if (horizontalInput > 0 && !isFacingRight)
+        if (horizontalInput > 0 && !IsFacingRight)
         {
             Flip();
         }
-        else if (horizontalInput < 0 && isFacingRight)
+        else if (horizontalInput < 0 && IsFacingRight)
         {
             Flip();
         }
 
+        // Update player animation based on movement
         UpdatePlayerAnimation();
-        if (Player.Instance.Stamina != Player.Instance.MaxStamina) RefreshStamina();
-        if (moveSpeed != originalMoveSpeed) DrainStamina();
+
+        // Handle player sprinting, stamina, and speed
+        if (isSprinting && Player.Instance.Stamina > 0)
+        {
+            moveSpeed = sprintSpeed; // Set sprint speed
+            DrainStamina(); // Drain stamina while sprinting 
+
+            if (Player.Instance.Stamina <= 0)
+            {
+                Player.Instance.Stamina = 0; // Prevent stamina from going negative
+                isSprinting = false; // Stop sprinting if stamina is depleted
+                moveSpeed = originalMoveSpeed; // Reset to original speed
+            }
+        }
+        else if (Player.Instance.Stamina < Player.Instance.MaxStamina)
+        {
+            RefreshStamina(); // Regenerate stamina when not sprinting
+        }
     }
 
-    private void UpdatePlayerAnimation()
-    {
-        animator.SetFloat("moveSpeed", Mathf.Abs(horizontalInput));
-        if (!IsGrounded() && rb.linearVelocity.y > 0) animator.SetTrigger("Jump");
-        if (!IsGrounded() && rb.linearVelocity.y < 0) animator.SetTrigger("Fall");
-        if (IsGrounded()) animator.SetTrigger("Idle");
-    }
 
     public void Move(InputAction.CallbackContext context)
     {
         horizontalInput = context.ReadValue<Vector2>().x;
+        print("Horizontal Input: " + horizontalInput);
+        verticalInput = context.ReadValue<Vector2>().y;
+        print("Vertical Input: " + verticalInput);
+    }
+
+    public void OnClimb(InputAction.CallbackContext context)
+    {
+        if (!isOnStairs) return; // Only allow climbing if on stairs
+
+        rb.linearVelocity = new Vector2(rb.linearVelocity.x, verticalInput * climbSpeed); // Climb up or down
+    }
+
+    private void OnMove(InputAction.CallbackContext context)
+    {
+        rb.linearVelocity = new Vector2(horizontalInput * moveSpeed, rb.linearVelocity.y);
     }
 
     public void Jump(InputAction.CallbackContext context)
@@ -88,24 +125,35 @@ public class PlayerController : MonoBehaviour
 
     public void Sprint(InputAction.CallbackContext context)
     {
-        if (Player.Instance.Stamina <= 0) return; // Prevent sprinting if stamina is depleted
-
-        if (context.performed && Player.Instance.Stamina != 0 && IsGrounded())
+        if (context.performed)
         {
-            moveSpeed = sprintSpeed;
+            if (Player.Instance.Stamina > 0) isSprinting = true; // Start sprinting if stamina is available
         }
-        if (context.canceled && Player.Instance.Stamina <= 0)
+        if (context.canceled)
         {
-            moveSpeed = originalMoveSpeed; // Reset to normal speed
-            return;
+            isSprinting = false; // Stop sprinting
+            moveSpeed = originalMoveSpeed; // Reset to original speed
         }
     }
 
-    private void OnMove(InputAction.CallbackContext context)
+    public void Crouch(InputAction.CallbackContext context)
     {
-        rb.linearVelocity = new Vector2(horizontalInput * moveSpeed, rb.linearVelocity.y);
-    }
+        if (context.performed)
+        {
+            isCrouching = true; // Start crouching
+            moveSpeed = originalMoveSpeed * 0.2f; // Reduce speed while crouching
 
+            if (Input.GetButtonDown("Jump"))
+            {
+                StartCoroutine(DropThroughPlatform());  // Drop through platform if crouching and jump is pressed
+            }
+        }
+        if (context.canceled)
+        {
+             isCrouching = false;
+             moveSpeed = originalMoveSpeed;
+        }
+    }
     private void RefreshStamina()
     {
         Player.Instance.Stamina += Time.deltaTime * staminaRefreshRate; // Regenerate stamina over time
@@ -125,9 +173,44 @@ public class PlayerController : MonoBehaviour
 
     private void Flip()
     {
-        isFacingRight = !isFacingRight;
+        IsFacingRight = !IsFacingRight;
         Vector3 theScale = transform.localScale;
         theScale.x *= -1;
         transform.localScale = theScale;
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.CompareTag("Stairs"))
+        {
+            isOnStairs = true; // Set climbing state when entering stairs
+            rb.gravityScale = 0f; // Disable gravity while climbing
+        }
+    }
+    private void OnTriggerExit2D(Collider2D collision)
+    {
+        if (collision.CompareTag("Stairs"))
+        {
+            isOnStairs = false; // Reset climbing state when exiting stairs
+            rb.gravityScale = 1f; // Enable gravity when not climbing
+        }
+    }
+
+    private void UpdatePlayerAnimation()
+    {
+        animator.SetFloat("moveSpeed", Mathf.Abs(horizontalInput));
+        if (!IsGrounded() && !isOnStairs && rb.linearVelocity.y > 0) animator.SetTrigger("Jump");
+        if (!IsGrounded() && rb.linearVelocity.y < 0) animator.SetTrigger("Fall");
+        if (IsGrounded()) animator.SetTrigger("Idle");
+        animator.SetBool("IsClimbing", (isOnStairs && verticalInput != 0));
+        animator.SetBool("IsCrouching", (isCrouching && IsGrounded()));
+    }
+
+    private IEnumerator DropThroughPlatform()
+    {
+        // Disable collision between player and one-way platforms
+        Physics2D.IgnoreLayerCollision(gameObject.layer, LayerMask.NameToLayer("Platforms"), true);
+        yield return new WaitForSeconds(0.4f); // Duration of falling through
+        Physics2D.IgnoreLayerCollision(gameObject.layer, LayerMask.NameToLayer("Platforms"), false);
     }
 }

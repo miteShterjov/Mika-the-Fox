@@ -5,6 +5,7 @@ public class PlayerInfoUI : MonoBehaviour
 {
     [SerializeField] private Slider healthSlider;
     [SerializeField] private Slider staminaSlider;
+    [SerializeField] private TMPro.TextMeshProUGUI gemsCollectedText;
 
     void Update()
     {
@@ -14,6 +15,7 @@ public class PlayerInfoUI : MonoBehaviour
             healthSlider.value = Player.Instance.Health;
             staminaSlider.maxValue = Player.Instance.MaxStamina;
             staminaSlider.value = Player.Instance.Stamina;
+            gemsCollectedText.text = Player.Instance.GemsCollected.ToString();
         }
         else
         {
