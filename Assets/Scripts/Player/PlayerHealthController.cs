@@ -39,6 +39,7 @@ public class PlayerHealthController : MonoBehaviour
     {
         if (other.CompareTag("Enemy"))
         {
+            if (Player.Instance.transform.position.y > other.transform.position.y) return; // Ignore damage if player is above the enemy
             if (isInvincible) return; // Ignore damage if invincible
             DoDamageToPlayer(other.gameObject);
         }
