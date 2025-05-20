@@ -68,7 +68,7 @@ public class EnemyController : MonoBehaviour
             rb.MovePosition(Vector2.MoveTowards(rb.position, pointB.position, moveSpeed * Time.deltaTime));
             spriteRenderer.flipX = false; // Face right
 
-            if (Vector2.Distance(rb.position, pointB.position) < 0.1f)
+            if (Vector2.Distance(rb.position, pointB.position) < 0.4f)
             {
                 isMovingRight = false;
             }
@@ -78,7 +78,7 @@ public class EnemyController : MonoBehaviour
             rb.MovePosition(Vector2.MoveTowards(rb.position, pointA.position, moveSpeed * Time.deltaTime));
             spriteRenderer.flipX = true; // Face left
 
-            if (Vector2.Distance(rb.position, pointA.position) < 0.1f)
+            if (Vector2.Distance(rb.position, pointA.position) < 0.4f)
             {
                 isMovingRight = true;
             }
