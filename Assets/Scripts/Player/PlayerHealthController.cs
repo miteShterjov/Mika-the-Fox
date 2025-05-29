@@ -4,6 +4,7 @@ using UnityEngine;
 public class PlayerHealthController : MonoBehaviour
 {
     [SerializeField] private float bounceForce = 15f; // Force applied to the player when bouncing
+    [SerializeField] private Transform groundChecker;
     private bool isInvincible = false; // Flag to check if player is invincible
     private float invincibilityDuration = 1f; // Duration of invincibility after taking damage
     private Knockback knockback;
@@ -42,7 +43,7 @@ public class PlayerHealthController : MonoBehaviour
     {
         if (other.CompareTag("Enemy"))
         {
-            //if (Player.Instance.transform.position.y > other.transform.position.y) return; // Ignore damage if player is above the enemy
+            if (groundChecker.transform.position.y > other.transform.position.y) return; // Ignore collision if player is above enemy
             if (isInvincible) return; // Ignore damage if invincible
             DoDamageToPlayer(other.gameObject);
         }

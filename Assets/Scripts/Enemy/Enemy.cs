@@ -10,6 +10,8 @@ public class Enemy : MonoBehaviour
     public float Health { get => health; set => health = value; }
     public float Damage { get => damage; set => damage = value; }
 
+    // this is the method that will be called when the enemy takes damage
+    // it will reduce the health of the enemy and check if it is dead
     public void TakeDamage(float damage)
     {
         health -= damage;
@@ -18,7 +20,8 @@ public class Enemy : MonoBehaviour
             Die();
         }
     }
-
+    // this method will be called when the enemy dies
+    // it will destroy the enemy game object after a delay
     private void Die()
     {
         float delay = 0.5f; 

@@ -29,14 +29,14 @@ public class Checkpoint : MonoBehaviour
             if (!isRespawnPoint && !wasRespawnPoint) ActivateCheckpoint();
         }
     }
-
+    // this method is used to reset last checkpoint
     public void ResetCheckpoint()
     {
         isRespawnPoint = false;
         wasRespawnPoint = true;
         spriteRenderer.sprite = checkOff;
     }
-
+    // this method is used to set the new checkpoint
     private void ActivateCheckpoint()
     {
         isRespawnPoint = true;

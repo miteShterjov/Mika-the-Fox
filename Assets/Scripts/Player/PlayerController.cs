@@ -82,7 +82,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-
+    // Handle player movement input, walking and climbing
     public void Move(InputAction.CallbackContext context)
     {
         horizontalInput = context.ReadValue<Vector2>().x;
@@ -103,6 +103,8 @@ public class PlayerController : MonoBehaviour
         rb.linearVelocity = new Vector2(horizontalInput * moveSpeed, rb.linearVelocity.y);
     }
 
+    // Handle player jump input, including double jump and jump cancel
+    // Jumping is allowed when grounded or in the air
     public void Jump(InputAction.CallbackContext context)
     {
         if (IsGrounded()) jumpCount = maxJumpCount; // Reset jump count when grounded
@@ -123,6 +125,9 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // Handle player sprinting input
+    // Sprinting is allowed when stamina is available as resource
+    // and the player is not crouching
     public void Sprint(InputAction.CallbackContext context)
     {
         if (context.performed)
@@ -136,6 +141,8 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // Handle player crouching input, still have no use from it
+    // but is here for future use, probably for stealth mechanics
     public void Crouch(InputAction.CallbackContext context)
     {
         if (context.performed)
@@ -150,27 +157,34 @@ public class PlayerController : MonoBehaviour
         }
         if (context.canceled)
         {
-             isCrouching = false;
-             moveSpeed = originalMoveSpeed;
+            isCrouching = false;
+            moveSpeed = originalMoveSpeed;
         }
     }
+
+    // refresh stamina over time
     private void RefreshStamina()
     {
         Player.Instance.Stamina += Time.deltaTime * staminaRefreshRate; // Regenerate stamina over time
         if (Player.Instance.Stamina > Player.Instance.MaxStamina) Player.Instance.Stamina = Player.Instance.MaxStamina;
     }
 
+    // drain stamina over time with sprinting
+    // if stamina is 0 stop sprinting
     private void DrainStamina()
     {
         Player.Instance.Stamina -= Time.deltaTime * staminaDrainRate; // Drain stamina while sprinting
         if (Player.Instance.Stamina < 0) Player.Instance.Stamina = 0;
     }
 
+    // Check if the player is grounded
     private bool IsGrounded()
     {
         return Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
     }
 
+    // Flip the player sprite to face the opposite direction
+    // this method is called when the player is moving left or right
     private void Flip()
     {
         IsFacingRight = !IsFacingRight;
@@ -179,6 +193,8 @@ public class PlayerController : MonoBehaviour
         transform.localScale = theScale;
     }
 
+    // Check if the player is on stairs
+    // this method is called when the player enters or exits the stairs
     private void OnTriggerEnter2D(Collider2D collision)
     {
         if (collision.CompareTag("Stairs"))
@@ -187,6 +203,9 @@ public class PlayerController : MonoBehaviour
             rb.gravityScale = 0f; // Disable gravity while climbing
         }
     }
+
+    // Reset climbing state when exiting stairs
+    // this method is called when the player exits the stairs
     private void OnTriggerExit2D(Collider2D collision)
     {
         if (collision.CompareTag("Stairs"))
@@ -196,6 +215,8 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // Update player animation based on movement and state
+    // this method is called every frame to update the player animation
     private void UpdatePlayerAnimation()
     {
         animator.SetFloat("moveSpeed", Mathf.Abs(horizontalInput));
@@ -206,6 +227,10 @@ public class PlayerController : MonoBehaviour
         animator.SetBool("IsCrouching", (isCrouching && IsGrounded()));
     }
 
+    // should let the player drop through one-way platforms
+    // this method is called when the player is crouching and jumps
+    // it will disable the collision between the player and the platform
+    // shit doesn't work and needs review
     private IEnumerator DropThroughPlatform()
     {
         // Disable collision between player and one-way platforms

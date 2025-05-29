@@ -54,13 +54,14 @@ public class EnemyController : MonoBehaviour
             }
         }
 
-        // handle animation if the enemy is frog
+        // handle animation if the enemy is frog, frog has 2 animations idle and move
         if (isFrogEnemy)
         {
             animator.SetFloat("moveSpeed", moveCount);
         }
     }
-
+    // this method will move the enemy between point A and point B
+    // it will also flip the sprite to face the direction it is moving
     private void MoveEnemy()
     {
         if (isMovingRight)
@@ -85,6 +86,8 @@ public class EnemyController : MonoBehaviour
         }
     }
 
+    // this method will deparent the points from the enemy
+    // this is to prevent the points from moving with the enemy
     private void DeparentPoints()
     {
         pointA.parent = null;

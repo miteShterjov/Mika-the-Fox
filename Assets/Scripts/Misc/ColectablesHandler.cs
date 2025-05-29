@@ -20,17 +20,26 @@ public class ColectablesHandler : MonoBehaviour
         }
     }
 
+    // This method checks if we will have loot or not, roll the dice
+    // and returns true or false, by default set at 40% chance
     private bool DoWeHaveLoot()
     {
-        return Random.Range(0, 100) < dropRate; // 50% chance to have loot
+        return Random.Range(0, 100) < dropRate;
     }
 
+    // This method returns a random collectable prefab from the array
+    // it uses the Random.Range method to get a random index from the array
+    // and returns the collectable prefab at that index
+    // this method is called when the player stomps the enemy
+    // and the loot is maybe spawned
     private GameObject GetFatLoot()
     {
         int randomIndex = Random.Range(0, collectables.Length); // Get a random index from the collectables array
         return collectables[randomIndex]; // Return the collectable prefab
     }
 
+    // This method is called when the player stomps the enemy
+    // and the loot is maybe spawned
     public void SpawnPlayerCollectables(Vector3 position)
     {
         if (DoWeHaveLoot())
